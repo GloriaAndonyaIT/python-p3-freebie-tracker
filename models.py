@@ -21,6 +21,21 @@ class Company(Base):
     def __repr__(self):
         return f'<Company {self.name}>'
 
+    @property
+    def devs(self):
+        """Returns a collection of all devs who collected freebies from this company"""
+        return list(set([freebie.dev for freebie in self.freebies]))
+
+    def give_freebie(self, session, dev, item_name, value):
+        new_freebie = Freebie(item_name=item_name, value=value, dev=dev, company=self)
+        session.add(new_freebie)
+        session.commit()
+
+    @classmethod
+    def oldest_company(cls, session):
+        return session.query(cls).order_by(cls.founding_year).first()
+
+
 class Dev(Base):
     __tablename__ = 'devs'
 
@@ -31,6 +46,20 @@ class Dev(Base):
 
     def __repr__(self):
         return f'<Dev {self.name}>'
+
+    @property
+    def companies(self):
+        """Returns a collection of all companies this dev has collected freebies from"""
+        return list(set([freebie.company for freebie in self.freebies]))
+
+    def received_one(self, item_name):
+        return any(freebie.item_name == item_name for freebie in self.freebies)
+
+    def give_away(self, session, dev, freebie):
+        if freebie in self.freebies:
+            freebie.dev = dev
+            session.commit()
+
 
 class Freebie(Base):
     __tablename__ = 'freebies'
@@ -50,4 +79,3 @@ class Freebie(Base):
     
     def print_details(self):
         return f"{self.dev.name} owns a {self.item_name} from {self.company.name}"
-
